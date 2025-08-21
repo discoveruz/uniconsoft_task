@@ -1,10 +1,9 @@
 import 'dart:developer' as dev;
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniconsoft_task/bloc/task_bloc.dart';
+import 'package:uniconsoft_task/domain/bloc/task_bloc.dart';
 import 'package:uniconsoft_task/models/task.dart';
-import 'package:uniconsoft_task/pages/widgets/task_tile.dart';
+import 'package:uniconsoft_task/pages/widgets/task_list.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
@@ -13,7 +12,7 @@ class TasksPage extends StatefulWidget {
   State<TasksPage> createState() => _TasksPageState();
 }
 
-class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
@@ -31,11 +30,7 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('Tasks'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(backgroundColor: Colors.deepOrange.shade200, title: Text('Tasks'), centerTitle: true),
       body: BlocBuilder<TaskBloc, TaskState>(
         builder: (context, state) {
           return Column(
@@ -45,127 +40,121 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
                 dividerColor: Colors.transparent,
                 labelColor: Colors.black,
                 unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.deepPurple,
+                indicatorColor: Colors.deepOrange,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 tabAlignment: TabAlignment.fill,
                 indicatorSize: TabBarIndicatorSize.tab,
                 splashBorderRadius: BorderRadius.circular(12),
                 indicator: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.2),
+                  color: Colors.deepOrange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                tabs: <Widget>[Tab(child: Text('All')), Tab(child: Text('Completed')), Tab(child: Text('Pending'))],
+                tabs: <Widget>[
+                  Tab(child: Text('All ${state.totalTaskCount}')),
+                  Tab(child: Text('Completed ${state.completedTaskCount}')),
+                  Tab(child: Text('Pending ${state.pendingTaskCount}')),
+                ],
               ),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    ListView.separated(
-                      addAutomaticKeepAlives: true,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: 22,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      itemBuilder: (context, index) {
-                        return TaskTile(
-                          task: Task(
-                            createdAt: 1755761104,
-                            description: 'Task $index',
-                            id: index,
-                            status: Random().nextInt(2),
-                          ),
-
-                          onTap: () {
-                            _confirmFinish(context);
-
-                            // Handle task tap
-                            dev.log('Task tapped: ${index + 1}');
-                          },
-                          onLongPress: () {
-                            dev.log('Task long pressed: ${index + 1}');
-                          },
-                        );
+                    TaskList(
+                      onTaskFinished: (task) {
+                        if (task.status == TaskStatus.pending) {
+                          context.read<TaskBloc>().add(DoneTaskEvent(task));
+                        }
                       },
+                      tasks: state.tasks ?? [],
                     ),
-                    ListView.separated(
-                      addAutomaticKeepAlives: true,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: 22,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      itemBuilder: (context, index) {
-                        return TaskTile(
-                          task: Task(
-                            createdAt: 1755761104,
-                            description: 'Task $index',
-                            id: index,
-                            status: Random().nextInt(2),
-                          ),
-
-                          onTap: () {
-                            _confirmFinish(context);
-
-                            // Handle task tap
-                            dev.log('Task tapped: ${index + 1}');
-                          },
-                          onLongPress: () {
-                            // Handle task double tap
-                            dev.log('Task long pressed: ${index + 1}');
-                          },
-                        );
+                    TaskList(onTaskFinished: (task) {}, tasks: state.completedTasks),
+                    TaskList(
+                      onTaskFinished: (task) {
+                        if (task.status == TaskStatus.pending) {
+                          context.read<TaskBloc>().add(DoneTaskEvent(task));
+                        }
                       },
-                    ),
-                    ListView.separated(
-                      addAutomaticKeepAlives: true,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: 22,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      itemBuilder: (context, index) {
-                        return TaskTile(
-                          task: Task(
-                            createdAt: 1755761104,
-                            description: 'Task $index',
-                            id: index,
-                            status: Random().nextInt(2),
-                          ),
-
-                          onTap: () {
-                            // Handle task tap
-                            _confirmFinish(context);
-
-                            dev.log('Task tapped: ${index + 1}');
-                          },
-                          onLongPress: () {
-                            // Handle task double tap
-                            dev.log('Task long pressed: ${index + 1}');
-                          },
-                        );
-                      },
+                      tasks: state.pendingTasks,
                     ),
                   ],
                 ),
               ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  dev.log('Add Task button pressed');
+                  final formKey = GlobalKey<FormState>();
+                  final TextEditingController taskTitleController = TextEditingController();
+                  final TextEditingController taskDescriptionController = TextEditingController();
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Add New Task'),
+                        content: Form(
+                          key: formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextFormField(
+                                controller: taskTitleController,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty || value.trim().isEmpty) {
+                                    return 'Task title cannot be empty';
+                                  }
+                                  return null;
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Enter task title',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              TextFormField(
+                                controller: taskDescriptionController,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter task description',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel')),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (!formKey.currentState!.validate()) return;
+
+                              return Navigator.pop(context, true);
+                            },
+                            child: Text('Add Task'),
+                          ),
+                        ],
+                      );
+                    },
+                  ).then((v) {
+                    if (v == true) {
+                      final taskTitle = taskTitleController.text.trim();
+                      final taskDescription = taskDescriptionController.text.trim();
+                      final Task newTask = Task(
+                        title: taskTitle,
+                        description: taskDescription.isEmpty ? null : taskDescription,
+                        status: TaskStatus.pending,
+                        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                      );
+                      dev.log('New task created: ${newTask.toJson()}');
+                      context.read<TaskBloc>().add(AddTaskEvent(newTask));
+                    }
+                  });
+                },
+                child: Text('Add Task'),
+              ),
+              SizedBox(height: 16),
             ],
           );
         },
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
-}
-
-void _confirmFinish(BuildContext context) async {
-  final result = await showDialog<bool>(
-    context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: const Text('Confirm'),
-        content: const Text('Are you sure the task is finished?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Finish')),
-        ],
-      );
-    },
-  );
 }

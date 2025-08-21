@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:uniconsoft_task/core/colors.dart';
+import 'package:uniconsoft_task/core/constants/colors.dart';
 import 'package:uniconsoft_task/models/task.dart';
 
 class TaskTile extends StatelessWidget {
   final Task task;
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
 
-  const TaskTile({super.key, required this.task, this.onTap, this.onLongPress});
+  const TaskTile({super.key, required this.task, this.onTap});
 
   String _formatTime(BuildContext context, int dt) {
     final dateTime = DateTime.fromMillisecondsSinceEpoch(dt * 1000);
@@ -24,7 +23,7 @@ class TaskTile extends StatelessWidget {
       color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          color: task.status == 0 ? AppColors.lightRed : AppColors.lightGreen,
+          color: task.status == TaskStatus.pending ? AppColors.lightRed : AppColors.lightGreen,
 
           borderRadius: BorderRadius.circular(radius),
           boxShadow: [
@@ -41,7 +40,6 @@ class TaskTile extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
           onTap: onTap,
-          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
@@ -50,6 +48,8 @@ class TaskTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(task.title, style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 4),
                       Text(
                         task.description ?? '',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -57,11 +57,24 @@ class TaskTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        'Created at • ${_formatTime(context, task.createdAt ?? 0)}',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      Row(
+                        children: [
+                          Text(
+                            'Created: ${_formatTime(context, task.createdAt ?? 0)}',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          ),
+                          if (task.finishedAt != null) ...[
+                            Spacer(),
+                            Text(
+                              'Finished: ${_formatTime(context, task.finishedAt!)}',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
