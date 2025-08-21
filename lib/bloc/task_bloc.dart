@@ -8,6 +8,6 @@ part 'task_bloc.freezed.dart';
 
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
   TaskBloc() : super(const TaskState()) {
-    on<TaskEvent>((event, emit) {});
+    on<GetTasksEvent>((event, emit) {});
   }
 }
