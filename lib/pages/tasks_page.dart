@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniconsoft_task/domain/bloc/task_bloc.dart';
 import 'package:uniconsoft_task/models/task.dart';
@@ -154,6 +155,28 @@ class _TasksPageState extends State<TasksPage> with SingleTickerProviderStateMix
             ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          MethodChannel channel = MethodChannel('uz.uniconsoft.task/taskstats');
+          channel
+              .invokeMethod('showTaskStats', [
+                {
+                  "taskStats": {"totalTasks": 1, "completedTasks": 2, "pendingTasks": 2},
+                },
+              ])
+              .then((value) {
+                if (value is Map<String, dynamic>) {
+                  dev.log('Task stats: $value');
+                } else {
+                  dev.log('Unexpected value type: ${value.runtimeType}');
+                }
+              })
+              .catchError((error) {
+                dev.log('Error getting task stats: $error');
+              });
+        },
+        child: Icon(Icons.info_outline_rounded),
       ),
     );
   }
